@@ -6,7 +6,7 @@ import {
 
 export class LoginUserDto {
   @IsString()
-  identifier: string; // login или email
+  identifier: string; // login or email
 
   @IsString()
   @MinLength(6)

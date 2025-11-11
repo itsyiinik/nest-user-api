@@ -6,12 +6,13 @@ import {
 } from "@nestjs/common";
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from "./dto/login-user.dto";
-import {InjectRepository } from '@nestjs/typeorm';  // connect service with table
+import {InjectRepository } from '@nestjs/typeorm';
 import {User}  from "../user/user.entity";
 import * as bcrypt from 'bcrypt';
 import { Repository } from "typeorm";
 import { JwtService } from '@nestjs/jwt';
 import { RefreshTokenDto } from "./dto/refresh.dto";
+import {ConfigService } from '@nestjs/config';
 
 
 @Injectable()
@@ -20,6 +21,7 @@ export class AuthService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async register(dtoCreate: CreateUserDto) {
@@ -40,10 +42,15 @@ export class AuthService {
       description: dtoCreate.description,
     });
 
+    await this.userRepository.save(newUser);
     const payload = { userId: newUser.id, email: newUser.email };
 
-    const accessToken = this.jwtService.sign(payload, { expiresIn: "1h" });
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: "7d" });
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_ACCESS_EXPIRES')
+    });
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES')
+    });
 
     newUser.refreshToken = refreshToken;
     await this.userRepository.save(newUser);
@@ -77,8 +84,12 @@ export class AuthService {
 
     const payload = { userId: userFound.id, email: userFound.email };
 
-    const accessToken = this.jwtService.sign(payload, { expiresIn: "1h" });
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: "7d" });
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_ACCESS_EXPIRES')
+    });
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES')
+    });
 
     await this.userRepository.update(userFound.id, { refreshToken });
     return {
@@ -89,9 +100,11 @@ export class AuthService {
   }
 
   async refreshToken(dto: RefreshTokenDto) {
-    const clientToken = dto.refreshToken; // Token sent by the User (headers)
+    const clientToken = dto.refreshToken;
 
-    const payload = this.jwtService.verify(clientToken, { secret: "yiinik" });
+    const payload = this.jwtService.verify(clientToken, {
+      secret: this.configService.get('JWT_SECRET')
+    });
     if (!payload) {
       throw new NotFoundException("Wrong Token");
     }
@@ -107,12 +120,12 @@ export class AuthService {
 
     const newAccessToken = this.jwtService.sign(
       { userId: user.id, email: user.email },
-      { expiresIn: "1h" },
+      { expiresIn: this.configService.get('JWT_ACCESS_EXPIRES') },
     );
 
     const newRefreshToken = this.jwtService.sign(
       { userId: user.id, email: user.email },
-      { expiresIn: "7d" },
+      { expiresIn: this.configService.get('JWT_REFRESH_EXPIRES') },
     );
 
     await this.userRepository.update(user.id, { refreshToken: newRefreshToken });
