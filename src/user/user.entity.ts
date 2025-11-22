@@ -1,9 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, DeleteDateColumn } from 'typeorm';
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   login: string;
@@ -22,6 +22,7 @@ export class User {
 
   @Column({ nullable: true })
   refreshToken: string;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }
-
-

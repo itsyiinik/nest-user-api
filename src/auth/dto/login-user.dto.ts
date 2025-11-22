@@ -1,13 +1,21 @@
 import {
   IsString,
   MinLength,
-  IsEmail,
 } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class LoginUserDto {
+  @ApiProperty({
+    description: 'User login OR email',
+    example: 'ionic or ionic@example.com',
+  })
   @IsString()
-  identifier: string; // login or email
+  identifier: string;
 
+  @ApiProperty({
+    description: 'User password, minimum 6 characters',
+    example: 'password123',
+  })
   @IsString()
   @MinLength(6)
   password: string;

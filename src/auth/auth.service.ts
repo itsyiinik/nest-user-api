@@ -9,69 +9,43 @@ import { LoginUserDto } from "./dto/login-user.dto";
 import {InjectRepository } from '@nestjs/typeorm';
 import {User}  from "../user/user.entity";
 import * as bcrypt from 'bcrypt';
-import { Repository } from "typeorm";
 import { JwtService } from '@nestjs/jwt';
+
 import { RefreshTokenDto } from "./dto/refresh.dto";
 import {ConfigService } from '@nestjs/config';
+import { AuthRepository } from "./auth.repository";
 
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly authRepo: AuthRepository,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
 
   async register(dtoCreate: CreateUserDto) {
-    const existingUser = await this.userRepository.findOne({
-      where: [{ email: dtoCreate.email }, { login: dtoCreate.login }],
-    });
+    const existingUser = await this.authRepo.findByEmailOrLogin(dtoCreate.email);
+
     if (existingUser) {
-      throw new ConflictException("User already exists");
+        throw new ConflictException("User already exists");
     }
 
     const hashPassword = await bcrypt.hash(dtoCreate.password, 10);
 
-    const newUser = this.userRepository.create({
-      login: dtoCreate.login,
-      email: dtoCreate.email,
-      password: hashPassword,
-      age: dtoCreate.age,
-      description: dtoCreate.description,
-    });
-
-    await this.userRepository.save(newUser);
-    const payload = { userId: newUser.id, email: newUser.email };
-
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get('JWT_ACCESS_EXPIRES')
-    });
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES')
-    });
-
-    newUser.refreshToken = refreshToken;
-    await this.userRepository.save(newUser);
+    const newUser = this.authRepo.createUser({ ...dtoCreate, password: hashPassword });
 
     return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      login: newUser.login,
-      email: newUser.email,
-      age: newUser.age,
-      description: newUser.description,
+      message: 'User successfully registered',
+      status: 201
     };
   }
 
   async login(dtoLogin: LoginUserDto) {
-    const userFound = await this.userRepository.findOne({
-      where: [{ email: dtoLogin.identifier }, { login: dtoLogin.identifier }],
-    });
+    const userFound = await this.authRepo.findByEmailOrLogin(dtoLogin.identifier);
 
     if (!userFound) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('Invalid login or password');
     }
 
     const correctPassword = await bcrypt.compare(
@@ -79,7 +53,7 @@ export class AuthService {
       userFound.password,
     );
     if (!correctPassword) {
-      throw new UnauthorizedException("Wrong Password");
+      throw new UnauthorizedException('Invalid login or password');
     }
 
     const payload = { userId: userFound.id, email: userFound.email };
@@ -91,9 +65,10 @@ export class AuthService {
       expiresIn: this.configService.get('JWT_REFRESH_EXPIRES')
     });
 
-    await this.userRepository.update(userFound.id, { refreshToken });
+    await this.authRepo.updateRefreshToken(userFound.id, refreshToken);
+
     return {
-      message: "success",
+      message: "User successfully logged in",
       access_token: accessToken,
       refresh_token: refreshToken,
     };
@@ -109,7 +84,7 @@ export class AuthService {
       throw new NotFoundException("Wrong Token");
     }
 
-    const user = await this.userRepository.findOneBy({ id: payload.userId });
+    const user = await this.authRepo.findById(payload.userId);
     if (!user) {
       throw new NotFoundException("User not found");
     }
@@ -128,11 +103,14 @@ export class AuthService {
       { expiresIn: this.configService.get('JWT_REFRESH_EXPIRES') },
     );
 
-    await this.userRepository.update(user.id, { refreshToken: newRefreshToken });
+    await this.authRepo.updateRefreshToken(user.id, newRefreshToken);
 
     return {
+      message: "Token refreshed successfully",
       access_token: newAccessToken,
       refresh_token: newRefreshToken,
     };
   }
+
+
 }
