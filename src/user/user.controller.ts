@@ -18,7 +18,7 @@ import {
 import { UserService } from "./user.service";
 import { AuthGuard } from "@nestjs/passport";
 import { User as UserDecorator } from "./user.decorator";
-import { UpdateUserDto } from "./dto/update-user.dto"; // твой кастомный декоратор
+import { UpdateUserDto } from "./dto/update-user.dto";
 
 @ApiTags('Profile')
 @ApiBearerAuth()
