@@ -1,116 +1,106 @@
 import {
-  ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
-} from "@nestjs/common";
-import { CreateUserDto } from './dto/create-user.dto';
-import { LoginUserDto } from "./dto/login-user.dto";
-import {InjectRepository } from '@nestjs/typeorm';
-import {User}  from "../user/user.entity";
-import * as bcrypt from 'bcrypt';
+} from '@nestjs/common';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-
-import { RefreshTokenDto } from "./dto/refresh.dto";
-import {ConfigService } from '@nestjs/config';
-import { AuthRepository } from "./auth.repository";
-
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ConfigService } from '@nestjs/config';
+import { UserService } from '../profile/user/user.service';
+import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
-    private readonly authRepo: AuthRepository,
+    private readonly userService: UserService,
     private jwtService: JwtService,
     private configService: ConfigService,
-  ) {}
-
-  async register(dtoCreate: CreateUserDto) {
-    const existingUser = await this.authRepo.findByEmailOrLogin(dtoCreate.email);
-
-    if (existingUser) {
-        throw new ConflictException("User already exists");
-    }
-
-    const hashPassword = await bcrypt.hash(dtoCreate.password, 10);
-
-    const newUser = this.authRepo.createUser({ ...dtoCreate, password: hashPassword });
-
-    return {
-      message: 'User successfully registered',
-      status: 201
-    };
+  ) {
+    this.logger.log('AuthService initialized');
   }
 
-  async login(dtoLogin: LoginUserDto) {
-    const userFound = await this.authRepo.findByEmailOrLogin(dtoLogin.identifier);
+  async register(dto: RegisterDto) {
+    this.logger.log(`Registering user: ${dto.login}`);
+    const user = await this.userService.create({
+      login: dto.login,
+      email: dto.email,
+      password: dto.password,
+      age: dto.age,
+      description: dto.description,
+    });
 
-    if (!userFound) {
-      throw new NotFoundException('Invalid login or password');
-    }
+    const result = await this.generateTokens(user);
 
-    const correctPassword = await bcrypt.compare(
-      dtoLogin.password,
-      userFound.password,
+    this.logger.log(`User ${user.login} created successfully`);
+    return result;
+  }
+
+  async login(dto: LoginDto) {
+    this.logger.log(`Login attempt for: ${dto.identifier}`);
+
+    const user = await this.userService.validateCredentials(
+      dto.identifier,
+      dto.password,
     );
-    if (!correctPassword) {
-      throw new UnauthorizedException('Invalid login or password');
-    }
 
-    const payload = { userId: userFound.id, email: userFound.email };
+    const result = await this.generateTokens(user);
 
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get('JWT_ACCESS_EXPIRES')
-    });
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES')
-    });
-
-    await this.authRepo.updateRefreshToken(userFound.id, refreshToken);
-
-    return {
-      message: "User successfully logged in",
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    };
+    this.logger.log(`User ${user.login} logged in successfully`);
+    return result;
   }
 
   async refreshToken(dto: RefreshTokenDto) {
     const clientToken = dto.refreshToken;
 
-    const payload = this.jwtService.verify(clientToken, {
-      secret: this.configService.get('JWT_SECRET')
-    });
-    if (!payload) {
-      throw new NotFoundException("Wrong Token");
+    let payload: JwtPayload;
+    try {
+      payload = this.jwtService.verify(clientToken, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
     }
 
-    const user = await this.authRepo.findById(payload.userId);
+    const user = await this.userService.findByIdWithAuth(payload.userId);
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
 
     if (clientToken !== user.refreshToken) {
-      throw new ConflictException('Token expired');
+      throw new UnauthorizedException('Token expired');
     }
 
-    const newAccessToken = this.jwtService.sign(
-      { userId: user.id, email: user.email },
-      { expiresIn: this.configService.get('JWT_ACCESS_EXPIRES') },
-    );
+    const result = await this.generateTokens(user);
 
-    const newRefreshToken = this.jwtService.sign(
-      { userId: user.id, email: user.email },
-      { expiresIn: this.configService.get('JWT_REFRESH_EXPIRES') },
-    );
-
-    await this.authRepo.updateRefreshToken(user.id, newRefreshToken);
-
-    return {
-      message: "Token refreshed successfully",
-      access_token: newAccessToken,
-      refresh_token: newRefreshToken,
-    };
+    this.logger.log(`Token refreshed for user: ${user.login}`);
+    return result;
   }
 
+  private async generateTokens(user: {
+    id: string;
+    email: string;
+    login: string;
+  }) {
+    const payload = { userId: user.id, email: user.email, login: user.login };
 
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_ACCESS_EXPIRES'),
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES'),
+    });
+
+    await this.userService.updateRefreshToken(user.id, refreshToken);
+
+    return {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    };
+  }
 }
