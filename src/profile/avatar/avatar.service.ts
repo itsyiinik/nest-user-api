@@ -28,6 +28,7 @@ export class AvatarService {
       this.logger.error('Missing MINIO_FOLDER_NAME in "env"');
       throw new Error('Missing folder in "env"');
     }
+
     this.avatarsFolder = folder;
     this.logger.debug(`Avatars folder configured: ${this.avatarsFolder}`);
   }
@@ -91,6 +92,7 @@ export class AvatarService {
 
   async softDeleteAvatar(userId: string, avatarId: string): Promise<void> {
     this.logger.log(`Soft deleting avatar ${avatarId} for user: ${userId}`);
+
     const foundAvatar = await this.avatarRepository.findById(avatarId);
     if (!foundAvatar) {
       this.logger.warn(
@@ -105,6 +107,7 @@ export class AvatarService {
     await this.s3Service.removeFile({
       path: `${this.avatarsFolder}/${foundAvatar.fileName}`,
     });
+
     this.logger.log(
       `Avatar soft deleted successfully: ${avatarId} for user: ${userId}`,
     );

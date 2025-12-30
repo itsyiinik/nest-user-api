@@ -13,6 +13,7 @@ export class BalanceResetService {
 
   async scheduleBalanceReset() {
     this.logger.log('Scheduling balance reset job...');
+
     const job = await this.balanceResetQueue.add('reset-all-balances', {
       timestamp: new Date().toISOString(),
     });

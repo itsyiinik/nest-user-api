@@ -26,6 +26,7 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     this.logger.log(`Registering user: ${dto.login}`);
+
     const user = await this.userService.create({
       login: dto.login,
       email: dto.email,
@@ -47,7 +48,6 @@ export class AuthService {
       dto.identifier,
       dto.password,
     );
-
     const result = await this.generateTokens(user);
 
     this.logger.log(`User ${user.login} logged in successfully`);

@@ -31,6 +31,7 @@ export class UserService {
     description?: string;
   }) {
     this.logger.log(`Creating new user: ${data.login} (${data.email})`);
+
     const existingByEmail = await this.userRepository.findByEmailOrLogin(
       data.email,
     );
@@ -44,12 +45,13 @@ export class UserService {
       );
       throw new ConflictException('User already exists');
     }
-    const hashedPassword = await bcrypt.hash(data.password, 10);
 
+    const hashedPassword = await bcrypt.hash(data.password, 10);
     const result = await this.userRepository.createUser({
       ...data,
       password: hashedPassword,
     });
+
     this.logger.log(
       `User created successfully: ${data.login} (ID: ${result.id})`,
     );
@@ -163,6 +165,7 @@ export class UserService {
 
   async updateUser(id: string, dtoUpdate: UpdateUserDto) {
     this.logger.log(`Updating user: ${id}`);
+
     const existingUser = await this.userRepository.findById(id);
     if (!existingUser) {
       this.logger.warn(`User not found for update: ${id}`);
@@ -173,6 +176,7 @@ export class UserService {
       this.logger.debug('Hashing new password for user update');
       dtoUpdate.password = await bcrypt.hash(dtoUpdate.password, 10);
     }
+
     this.logger.log(`User updated: ${id} (${existingUser.login})`);
     return await this.userRepository.updateUser(id, dtoUpdate);
   }
@@ -225,6 +229,7 @@ export class UserService {
     login: string,
   ): Promise<{ id: string; login: string; balance: number } | null> {
     this.logger.log(`Finding user by exact login: ${login}`);
+
     const user = await this.userRepository.findUserByExactLogin(login);
 
     if (user) {

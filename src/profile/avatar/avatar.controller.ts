@@ -43,9 +43,7 @@ export class AvatarController {
     schema: {
       type: 'object',
       properties: {
-        file: {
-          type: 'string',
-        },
+        file: { type: 'string' },
       },
     },
   })
