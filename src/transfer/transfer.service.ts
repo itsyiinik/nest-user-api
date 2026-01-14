@@ -90,7 +90,6 @@ export class TransferService {
         newFromBalance,
         manager,
       );
-
       await this.userService.updateBalance(toUser.id, newToBalance, manager);
 
       const duration = Date.now() - startTime;
