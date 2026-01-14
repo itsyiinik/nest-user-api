@@ -22,7 +22,7 @@ import { BalanceResetModule } from './balance-reset/balance-reset.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         store: redisStore,
-        host: 'localhost',
+        host: configService.get<string>('REDIS_HOST'),
         port: configService.get<number>('REDIS_PORT'),
         password: configService.get<string>('REDIS_PASSWORD'),
       }),
@@ -56,7 +56,7 @@ import { BalanceResetModule } from './balance-reset/balance-reset.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         redis: {
-          host: 'localhost',
+          host: configService.get<string>('REDIS_HOST'),
           port: configService.get<number>('REDIS_PORT'),
           password: configService.get<string>('REDIS_PASSWORD'),
         },

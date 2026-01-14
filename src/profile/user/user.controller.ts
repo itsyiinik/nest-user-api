@@ -20,6 +20,7 @@ import { UserService } from './user.service';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { findPageLimitUsersDto } from './dto/find-page-limit-users.dto';
 
 @ApiTags('Profile')
 @ApiBearerAuth()
@@ -45,20 +46,19 @@ export class UserController {
   @Get('users')
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Get users with pagination' })
-  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
   @ApiResponse({ status: 200, description: 'Returns list of users' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async findPageLimitUsers(@Query() query: { page?: number; limit?: number }) {
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 10;
+  async findPageLimitUsers(@Query() query: findPageLimitUsersDto) {
+    const { page, limit } = query;
 
     this.logger.log(`GET /profile/users?page=${page}&limit=${limit}`);
 
     const result = await this.userService.findPageLimitUsers(page, limit);
+
     this.logger.log(
       `GET /profile/users completed, page=${page}, limit=${limit}`,
     );
+
     return result;
   }
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository, UpdateResult } from 'typeorm';
+import { EntityManager, Like, Repository, UpdateResult } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { UserAvatar } from '../../avatar/entities/avatar.entity';
 
@@ -130,8 +130,10 @@ export class UserRepository {
 
   async findUserWithBalance(
     id: string,
+    manager?: EntityManager,
   ): Promise<{ id: string; login: string; balance: number } | null> {
-    return this.repo
+    const repository = manager ? manager.getRepository(User) : this.repo;
+    return repository
       .createQueryBuilder('user')
       .where('user.id = :id', { id })
       .select(['user.id', 'user.login', 'user.balance'])
@@ -141,8 +143,10 @@ export class UserRepository {
 
   async findUserByExactLogin(
     login: string,
+    manager?: EntityManager,
   ): Promise<{ id: string; login: string; balance: number } | null> {
-    return this.repo
+    const repository = manager ? manager.getRepository(User) : this.repo;
+    return repository
       .createQueryBuilder('user')
       .where('user.login = :login', { login })
       .select(['user.id', 'user.login', 'user.balance'])
@@ -150,7 +154,12 @@ export class UserRepository {
       .getOne();
   }
 
-  async updateBalance(id: string, newBalance: number): Promise<void> {
-    await this.repo.update(id, { balance: newBalance });
+  async updateBalance(
+    id: string,
+    newBalance: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository = manager ? manager.getRepository(User) : this.repo;
+    await repository.update(id, { balance: newBalance });
   }
 }

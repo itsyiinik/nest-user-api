@@ -11,6 +11,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class UserService {
@@ -209,10 +210,11 @@ export class UserService {
 
   async findUserWithBalance(
     id: string,
+    manager?: EntityManager,
   ): Promise<{ id: string; login: string; balance: number } | null> {
     this.logger.log(`Finding user with balance: ${id}`);
 
-    const user = await this.userRepository.findUserWithBalance(id);
+    const user = await this.userRepository.findUserWithBalance(id, manager);
 
     if (user) {
       this.logger.log(
@@ -227,10 +229,11 @@ export class UserService {
 
   async findUserByExactLogin(
     login: string,
+    manager?: EntityManager,
   ): Promise<{ id: string; login: string; balance: number } | null> {
     this.logger.log(`Finding user by exact login: ${login}`);
 
-    const user = await this.userRepository.findUserByExactLogin(login);
+    const user = await this.userRepository.findUserByExactLogin(login, manager);
 
     if (user) {
       this.logger.log(
@@ -243,10 +246,14 @@ export class UserService {
     return user;
   }
 
-  async updateBalance(id: string, newBalance: number): Promise<void> {
+  async updateBalance(
+    id: string,
+    newBalance: number,
+    manager?: EntityManager,
+  ): Promise<void> {
     this.logger.log(`Updating balance for user: ${id} to ${newBalance}`);
 
-    await this.userRepository.updateBalance(id, newBalance);
+    await this.userRepository.updateBalance(id, newBalance, manager);
 
     this.logger.log(`Balance updated for user: ${id}`);
   }
