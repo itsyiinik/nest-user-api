@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TransferBalanceDto } from './dto/transfer-balance.dto';
-import { UserService } from '../profile/user/user.service';
+import { UserService } from '../user/user.service';
 import { EntityManager } from 'typeorm';
 import { InjectEntityManager } from '@nestjs/typeorm';
 

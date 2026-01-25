@@ -9,7 +9,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ConfigService } from '@nestjs/config';
-import { UserService } from '../profile/user/user.service';
+import { UserService } from '../user/user.service';
 import { JwtPayload } from '@app/common/interfaces/jwt-payload.interface';
 
 @Injectable()

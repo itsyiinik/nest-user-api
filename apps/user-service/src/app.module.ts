@@ -2,8 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
-import { AvatarModule } from './profile/avatar/avatar.module';
-import { ProfileModule } from './profile/profile.module';
+import { AvatarModule } from './avatar/avatar.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import { DataSource } from 'typeorm';
@@ -66,7 +65,6 @@ import { BalanceResetModule } from './balance-reset/balance-reset.module';
     ScheduleModule.forRoot(),
 
     AuthModule,
-    ProfileModule,
     AvatarModule,
     TransferModule,
     BalanceResetModule,

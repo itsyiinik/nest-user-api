@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { AvatarRepository } from './repositories/avatar.repository';
 import { UserAvatar } from './entities/avatar.entity';
-import { S3Service } from '../../providers/files/s3/s3.service';
+import { S3Service } from '../providers/files/s3/s3.service';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 

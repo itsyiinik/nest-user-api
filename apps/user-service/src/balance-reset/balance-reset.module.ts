@@ -4,7 +4,7 @@ import { BullModule } from '@nestjs/bull';
 import { BalanceResetController } from './balance-reset.controller';
 import { BalanceResetService } from './balance-reset.service';
 import { BalanceResetProcessor } from './balance-reset.processor';
-import { User } from '../profile/user/entities/user.entity';
+import { User } from '../user/entities/user.entity';
 
 @Module({
   imports: [

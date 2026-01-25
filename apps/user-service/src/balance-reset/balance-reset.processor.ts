@@ -2,7 +2,7 @@ import { Process, Processor } from '@nestjs/bull';
 import type { Job } from 'bull';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../profile/user/entities/user.entity';
+import { User } from '../user/entities/user.entity';
 import { Logger } from '@nestjs/common';
 
 @Processor('balance-reset')
