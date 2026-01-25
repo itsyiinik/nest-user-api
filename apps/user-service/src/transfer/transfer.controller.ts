@@ -1,6 +1,6 @@
 import { Body, Controller, Logger, Post, UseGuards } from '@nestjs/common';
 import { TransferService } from './transfer.service';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentUser } from '@app/common/decorators/current-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { TransferBalanceDto } from './dto/transfer-balance.dto';
 import {

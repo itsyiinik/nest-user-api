@@ -18,7 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser } from '@app/common/decorators/current-user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { findPageLimitUsersDto } from './dto/find-page-limit-users.dto';
 

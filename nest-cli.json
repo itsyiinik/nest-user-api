@@ -19,13 +19,13 @@
         "tsConfigPath": "libs/common/tsconfig.lib.json"
       }
     },
-    "nest-user-api": {
+    "user-service": {
       "type": "application",
       "root": "apps/nest-user-api",
       "entryFile": "main",
-      "sourceRoot": "apps/nest-user-api/src",
+      "sourceRoot": "apps/user-service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/nest-user-api/tsconfig.app.json"
+        "tsConfigPath": "apps/user-service/tsconfig.app.json"
       }
     },
     "notification-service": {

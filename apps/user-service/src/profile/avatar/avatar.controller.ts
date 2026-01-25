@@ -13,8 +13,8 @@ import { AvatarService } from './avatar.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileValidationPipe } from './pipes/avatar-validation.pipe';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
+import { CurrentUser } from '@app/common/decorators/current-user.decorator';
+import type { JwtPayload } from '@app/common/interfaces/jwt-payload.interface';
 import {
   ApiBearerAuth,
   ApiBody,
