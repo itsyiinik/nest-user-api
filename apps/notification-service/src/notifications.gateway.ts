@@ -64,6 +64,5 @@ export class NotificationsGateway
   sendNotification(userId: string, data: any) {
     this.io.to(userId).emit('notification', data);
     this.logger.log(`Notification sent to user ${userId}`);
-    this.logger.error(`Failed to send notification to user ${userId}:`);
   }
 }
