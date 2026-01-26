@@ -10,7 +10,6 @@ export class NotificationsService {
     const notificationPayload = {
       message: dto.message,
       data: dto.data,
-      timestamp: new Date().toISOString(),
     };
 
     this.notificationsGateway.sendNotification(dto.userId, notificationPayload);

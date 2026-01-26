@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -8,6 +9,7 @@ import { TransferBalanceDto } from './dto/transfer-balance.dto';
 import { UserService } from '../user/user.service';
 import { EntityManager } from 'typeorm';
 import { InjectEntityManager } from '@nestjs/typeorm';
+import { ClientKafka } from '@nestjs/microservices';
 
 @Injectable()
 export class TransferService {
@@ -16,6 +18,7 @@ export class TransferService {
   constructor(
     private readonly userService: UserService,
     @InjectEntityManager() private readonly entityManager: EntityManager,
+    @Inject('KAFKA_SERVICE') private readonly kafkaClient: ClientKafka,
   ) {
     this.logger.log('TransferService initialized');
   }
@@ -95,25 +98,23 @@ export class TransferService {
       const duration = Date.now() - startTime;
       this.logger.log(`Transfer completed successfully in ${duration}ms`);
 
-      this.logger.debug(`Transfer result:`, {
-        from: {
-          id: fromUser.id,
-          login: fromUser.login,
-          oldBalance: fromUser.balance,
-          newBalance: newFromBalance,
-          change: -dto.amount,
-        },
-        to: {
-          id: toUser.id,
-          login: toUser.login,
-          oldBalance: toUser.balance,
-          newBalance: newToBalance,
-          change: +dto.amount,
-        },
-        amount: dto.amount,
-        duration: duration,
-        timestamp: new Date().toISOString(),
-      });
+      // -------- ОТПРАВКА В KAFKA --------
+      try {
+        const kafkaEvent = {
+          fromUserId: fromUser.id,
+          toUserId: toUser.id,
+          fromUserLogin: fromUser.login,
+          toUserLogin: toUser.login,
+          amount: dto.amount,
+          transactionId: `txn_${Date.now()}_${fromUser.id}_${toUser.id}`,
+          timestamp: new Date().toISOString(),
+        };
+
+        this.kafkaClient.emit('transfer-completed', kafkaEvent);
+        this.logger.log(`Kafka event sent:`, kafkaEvent);
+      } catch (error) {
+        this.logger.error('Failed to send Kafka event:', error);
+      }
 
       return {
         success: true,
@@ -124,10 +125,10 @@ export class TransferService {
         },
         toUser: {
           id: toUser.id,
-          login: dto.toUserLogin,
+          login: toUser.login, // ← тоже используй toUser.login
           newBalance: newToBalance,
         },
-        amountSend: dto.amount,
+        amount: dto.amount,
       };
     });
   }

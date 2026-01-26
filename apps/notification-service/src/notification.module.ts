@@ -6,6 +6,7 @@ import { NotificationController } from './notification.controller';
 import { NotificationsService } from './notifications.service';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './auth/strategies/jwt.strategy';
+import { KafkaNotificationsController } from './kafkaNotifications.controller';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { JwtStrategy } from './auth/strategies/jwt.strategy';
     }),
   ],
   providers: [NotificationsGateway, NotificationsService, JwtStrategy],
-  controllers: [NotificationController],
+  controllers: [NotificationController, KafkaNotificationsController],
 })
 export class NotificationsModule {}

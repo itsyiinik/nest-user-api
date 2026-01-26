@@ -24,14 +24,14 @@ export class NotificationsGateway
   }
 
   async handleConnection(client: Socket) {
-    const jwtToken = client.handshake.query.token as string;
-    if (!jwtToken) {
+    const authHeader = client.handshake.query.token as string;
+    if (!authHeader) {
       client.disconnect();
       return;
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync<JwtPayload>(jwtToken);
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(authHeader);
 
       const userId = payload.userId;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

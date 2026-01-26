@@ -20,5 +20,5 @@ export class CreateNotificationDto {
 
   @IsOptional()
   @IsObject()
-  data?: string;
+  data?: Record<string, any>;
 }
