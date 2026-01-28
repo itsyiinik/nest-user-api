@@ -72,4 +72,4 @@ import { BalanceResetModule } from './balance-reset/balance-reset.module';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class UserModule {}

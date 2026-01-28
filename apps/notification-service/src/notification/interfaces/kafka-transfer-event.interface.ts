@@ -1,7 +1,7 @@
 export interface KafkaTransferEventInterface {
   fromUserId: string;
-  toUserId: string;
   fromUserLogin: string;
+  toUserId: string;
   toUserLogin: string;
   amount: number;
   transactionId?: string;

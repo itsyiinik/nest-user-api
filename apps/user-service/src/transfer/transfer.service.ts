@@ -98,7 +98,7 @@ export class TransferService {
       const duration = Date.now() - startTime;
       this.logger.log(`Transfer completed successfully in ${duration}ms`);
 
-      // -------- ОТПРАВКА В KAFKA --------
+      // Send Kafka
       try {
         const kafkaEvent = {
           fromUserId: fromUser.id,
@@ -125,7 +125,7 @@ export class TransferService {
         },
         toUser: {
           id: toUser.id,
-          login: toUser.login, // ← тоже используй toUser.login
+          login: toUser.login,
           newBalance: newToBalance,
         },
         amount: dto.amount,

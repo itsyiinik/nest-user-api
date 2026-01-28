@@ -3,14 +3,8 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { NotificationsModule } from './notification.module';
 
 async function bootstrap() {
-  console.log('=== STARTING NOTIFICATION SERVICE ===');
-
   try {
-    const app = await NestFactory.create(NotificationsModule, {
-      logger: ['log', 'error', 'warn', 'debug', 'verbose'],
-    });
-
-    console.log('App created, connecting to Kafka...');
+    const app = await NestFactory.create(NotificationsModule);
 
     app.connectMicroservice<MicroserviceOptions>({
       transport: Transport.KAFKA,
@@ -20,19 +14,16 @@ async function bootstrap() {
         },
         consumer: {
           groupId: 'notification-group',
+          allowAutoTopicCreation: true,
         },
       },
     });
 
-    console.log('Kafka connected, starting microservices...');
-
     await app.startAllMicroservices();
-    console.log('Microservices started successfully!');
 
     await app.listen(3001);
-    console.log('Notification service running on port 3001');
   } catch (error) {
-    console.error('FATAL ERROR:', error);
+    console.log('FATAL ERROR:', error);
     process.exit(1);
   }
 }

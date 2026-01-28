@@ -1,12 +1,16 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
-import { NotificationsGateway } from './notifications.gateway';
-import { NotificationController } from './notification.controller';
-import { NotificationsService } from './notifications.service';
+import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
-import { JwtStrategy } from './auth/strategies/jwt.strategy';
-import { KafkaNotificationsController } from './kafkaNotifications.controller';
+import { NotificationsGateway } from './notification/notifications.gateway';
+import { NotificationsService } from './notification/notifications.service';
+import { KafkaNotificationsController } from './notification/kafkaNotifications.controller';
+import { NotificationDbService } from './notification/notification-db.service';
+import {
+  Notification,
+  NotificationSchema,
+} from './notification/schemas/notification.schema';
 
 @Module({
   imports: [
@@ -16,8 +20,22 @@ import { KafkaNotificationsController } from './kafkaNotifications.controller';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
     }),
+
+    MongooseModule.forRootAsync({
+      useFactory: () => ({
+        uri: process.env.MONGODB_URI,
+      }),
+    }),
+
+    MongooseModule.forFeature([
+      { name: Notification.name, schema: NotificationSchema },
+    ]),
   ],
-  providers: [NotificationsGateway, NotificationsService, JwtStrategy],
-  controllers: [NotificationController, KafkaNotificationsController],
+  providers: [
+    NotificationsGateway,
+    NotificationsService,
+    NotificationDbService,
+  ],
+  controllers: [KafkaNotificationsController],
 })
 export class NotificationsModule {}

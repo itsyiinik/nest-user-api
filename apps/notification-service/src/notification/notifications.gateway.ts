@@ -34,7 +34,7 @@ export class NotificationsGateway
       const payload = await this.jwtService.verifyAsync<JwtPayload>(authHeader);
 
       const userId = payload.userId;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line
       client.data.userId = userId;
 
       await client.join(userId);
@@ -58,7 +58,7 @@ export class NotificationsGateway
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+    this.logger.log(`Client: ${client.id}, disconnected: ${client.id}`);
   }
 
   sendNotification(userId: string, data: any) {
