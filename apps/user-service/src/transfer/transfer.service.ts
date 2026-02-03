@@ -10,6 +10,7 @@ import { UserService } from '../user/user.service';
 import { EntityManager } from 'typeorm';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { ClientKafka } from '@nestjs/microservices';
+import { KAFKA_SERVICE } from './transfer.tokens';
 
 @Injectable()
 export class TransferService {
@@ -18,7 +19,7 @@ export class TransferService {
   constructor(
     private readonly userService: UserService,
     @InjectEntityManager() private readonly entityManager: EntityManager,
-    @Inject('KAFKA_SERVICE') private readonly kafkaClient: ClientKafka,
+    @Inject(KAFKA_SERVICE) private readonly kafkaClient: ClientKafka,
   ) {
     this.logger.log('TransferService initialized');
   }

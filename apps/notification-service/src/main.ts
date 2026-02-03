@@ -10,10 +10,10 @@ async function bootstrap() {
       transport: Transport.KAFKA,
       options: {
         client: {
-          brokers: ['localhost:9092'],
+          brokers: [process.env.KAFKA_BROKERS],
         },
         consumer: {
-          groupId: 'notification-group',
+          groupId: process.env.KAFKA_CONSUMER_GROUP_ID,
           allowAutoTopicCreation: true,
         },
       },

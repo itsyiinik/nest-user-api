@@ -11,6 +11,7 @@ import {
   Notification,
   NotificationSchema,
 } from './notification/schemas/notification.schema';
+import { WsJwtAuthGuard } from './notification/guards/ws-jwt-auth.guard';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import {
     NotificationsGateway,
     NotificationsService,
     NotificationDbService,
+    WsJwtAuthGuard,
   ],
   controllers: [KafkaNotificationsController],
 })

@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { EventPattern } from '@nestjs/microservices';
 import { NotificationsService } from './notifications.service';
 import { KafkaTransferEventInterface } from './interfaces/kafka-transfer-event.interface';
@@ -6,6 +6,8 @@ import { NotificationDbService } from './notification-db.service';
 
 @Controller()
 export class KafkaNotificationsController {
+  private readonly logger = new Logger(KafkaNotificationsController.name);
+
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly notificationsDbService: NotificationDbService,
@@ -13,7 +15,7 @@ export class KafkaNotificationsController {
 
   @EventPattern('transfer-completed')
   async handleTransferCompleted(data: KafkaTransferEventInterface) {
-    console.log('Received transfer event from Kafka:', data);
+    this.logger.log('Received transfer event from Kafka:', data);
 
     await this.notificationsDbService.createTransferNotification({
       senderUserId: data.fromUserId,

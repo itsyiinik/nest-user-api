@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -7,9 +7,9 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { JwtService } from '@nestjs/jwt';
-import { JwtPayload } from '@app/common';
+import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
 
+@UseGuards(WsJwtAuthGuard)
 @WebSocketGateway()
 export class NotificationsGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -17,44 +17,28 @@ export class NotificationsGateway
   @WebSocketServer() io: Server;
   private readonly logger = new Logger(NotificationsGateway.name);
 
-  constructor(private readonly jwtService: JwtService) {}
-
   afterInit() {
     this.logger.log('Notifications Gateway Initialized');
   }
 
   async handleConnection(client: Socket) {
-    const authHeader = client.handshake.query.token as string;
-    if (!authHeader) {
-      client.disconnect();
-      return;
+    // eslint-disable-next-line
+    const userId = client.data.userId;
+
+    await client.join(userId);
+
+    const rooms = this.io.sockets.adapter.rooms;
+    const room = rooms.get(userId);
+
+    if (room) {
+      const connectionsCount = room.size;
+      this.logger.log(`Room ${userId} has ${connectionsCount} connection(s)`);
+
+      const socketIds = Array.from(room);
+      this.logger.log(`Sockets in room: ${socketIds.join(', ')}`);
     }
 
-    try {
-      const payload = await this.jwtService.verifyAsync<JwtPayload>(authHeader);
-
-      const userId = payload.userId;
-      // eslint-disable-next-line
-      client.data.userId = userId;
-
-      await client.join(userId);
-
-      const rooms = this.io.sockets.adapter.rooms;
-      const room = rooms.get(userId);
-
-      if (room) {
-        const connectionsCount = room.size;
-        this.logger.log(`Room ${userId} has ${connectionsCount} connection(s)`);
-
-        const socketIds = Array.from(room);
-        this.logger.log(`Sockets in room: ${socketIds.join(', ')}`);
-      }
-
-      this.logger.log(`Client connected: ${client.id}, user: ${userId}`);
-    } catch {
-      this.logger.warn(`JWT validation failed for client ${client.id}`);
-      client.disconnect();
-    }
+    this.logger.log(`Client connected: ${client.id}, user: ${userId}`);
   }
 
   handleDisconnect(client: Socket) {

@@ -5,6 +5,7 @@ import { TransferService } from './transfer.service';
 import { UserModule } from '../user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
+import { KAFKA_SERVICE } from './transfer.tokens';
 
 @Module({
   imports: [
@@ -12,11 +13,11 @@ import { User } from '../user/entities/user.entity';
     UserModule,
     ClientsModule.register([
       {
-        name: 'KAFKA_SERVICE',
+        name: KAFKA_SERVICE,
         transport: Transport.KAFKA,
         options: {
           client: {
-            brokers: ['localhost:9092'],
+            brokers: [process.env.KAFKA_BROKERS],
           },
           producer: {
             allowAutoTopicCreation: true,
