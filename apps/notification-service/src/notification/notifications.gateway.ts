@@ -1,4 +1,4 @@
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -6,10 +6,10 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
-import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
+import { JwtPayload } from '@app/common';
 
-@UseGuards(WsJwtAuthGuard)
 @WebSocketGateway()
 export class NotificationsGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -17,14 +17,34 @@ export class NotificationsGateway
   @WebSocketServer() io: Server;
   private readonly logger = new Logger(NotificationsGateway.name);
 
+  constructor(private readonly jwtService: JwtService) {}
+
   afterInit() {
     this.logger.log('Notifications Gateway Initialized');
   }
 
   async handleConnection(client: Socket) {
-    // eslint-disable-next-line
-    const userId = client.data.userId;
+    const token = (client.handshake.auth?.token ??
+      client.handshake.query.token) as string;
+    if (!token) {
+      this.logger.warn(
+        `Client ${client.id} connected without token, disconnecting`,
+      );
+      client.disconnect();
+      return;
+    }
 
+    try {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
+      // eslint-disable-next-line
+      client.data.userId = payload.userId;
+    } catch {
+      this.logger.warn(`Client ${client.id} invalid token, disconnecting`);
+      client.disconnect();
+      return;
+    }
+
+    const userId = client.data.userId;
     await client.join(userId);
 
     const rooms = this.io.sockets.adapter.rooms;

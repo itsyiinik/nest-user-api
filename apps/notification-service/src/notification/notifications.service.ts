@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { NotificationsGateway } from './notifications.gateway';
-import { CreateNotificationDto } from './dto/сreate-notification.dto';
+import { CreateNotificationDto } from './dto/create-notification.dto';
 
 @Injectable()
 export class NotificationsService {

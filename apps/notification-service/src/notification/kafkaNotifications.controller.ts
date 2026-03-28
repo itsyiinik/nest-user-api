@@ -17,25 +17,32 @@ export class KafkaNotificationsController {
   async handleTransferCompleted(data: KafkaTransferEventInterface) {
     this.logger.log('Received transfer event from Kafka:', data);
 
-    await this.notificationsDbService.createTransferNotification({
-      senderUserId: data.fromUserId,
-      senderLogin: data.fromUserLogin,
-      receiverUserId: data.toUserId,
-      receiverLogin: data.toUserLogin,
-      amount: data.amount,
-      transactionId: data.transactionId,
-    });
-
-    this.notificationsService.sendNotification({
-      userId: data.toUserId,
-      message: `You received: ${data.amount} from ${data.fromUserLogin}`,
-      data: {
-        fromUserId: data.fromUserId,
-        fromUserLogin: data.fromUserLogin,
+    try {
+      await this.notificationsDbService.createTransferNotification({
+        senderUserId: data.fromUserId,
+        senderLogin: data.fromUserLogin,
+        receiverUserId: data.toUserId,
+        receiverLogin: data.toUserLogin,
         amount: data.amount,
         transactionId: data.transactionId,
-        timestamp: data.timestamp || new Date().toISOString(),
-      },
-    });
+      });
+
+      this.notificationsService.sendNotification({
+        userId: data.toUserId,
+        message: `You received: ${data.amount} from ${data.fromUserLogin}`,
+        data: {
+          fromUserId: data.fromUserId,
+          fromUserLogin: data.fromUserLogin,
+          amount: data.amount,
+          transactionId: data.transactionId,
+          timestamp: data.timestamp || new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to process transfer event ${data.transactionId}:`,
+        error,
+      );
+    }
   }
 }
