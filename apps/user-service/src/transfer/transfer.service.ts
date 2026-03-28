@@ -1,6 +1,6 @@
+import { randomUUID } from 'crypto';
 import {
   BadRequestException,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -9,8 +9,7 @@ import { TransferBalanceDto } from './dto/transfer-balance.dto';
 import { UserService } from '../user/user.service';
 import { EntityManager } from 'typeorm';
 import { InjectEntityManager } from '@nestjs/typeorm';
-import { ClientKafka } from '@nestjs/microservices';
-import { KAFKA_SERVICE } from './transfer.tokens';
+import { Outbox, OutboxStatus } from '../outbox/outbox.entity';
 
 @Injectable()
 export class TransferService {
@@ -19,7 +18,6 @@ export class TransferService {
   constructor(
     private readonly userService: UserService,
     @InjectEntityManager() private readonly entityManager: EntityManager,
-    @Inject(KAFKA_SERVICE) private readonly kafkaClient: ClientKafka,
   ) {
     this.logger.log('TransferService initialized');
   }
@@ -99,23 +97,21 @@ export class TransferService {
       const duration = Date.now() - startTime;
       this.logger.log(`Transfer completed successfully in ${duration}ms`);
 
-      // Send Kafka
-      try {
-        const kafkaEvent = {
-          fromUserId: fromUser.id,
-          toUserId: toUser.id,
-          fromUserLogin: fromUser.login,
-          toUserLogin: toUser.login,
-          amount: dto.amount,
-          transactionId: `txn_${Date.now()}_${fromUser.id}_${toUser.id}`,
-          timestamp: new Date().toISOString(),
-        };
+      const kafkaEvent = {
+        fromUserId: fromUser.id,
+        toUserId: toUser.id,
+        fromUserLogin: fromUser.login,
+        toUserLogin: toUser.login,
+        amount: dto.amount,
+        transactionId: randomUUID(),
+        timestamp: new Date().toISOString(),
+      };
 
-        this.kafkaClient.emit('transfer-completed', kafkaEvent);
-        this.logger.log(`Kafka event sent:`, kafkaEvent);
-      } catch (error) {
-        this.logger.error('Failed to send Kafka event:', error);
-      }
+      await manager.save(Outbox, {
+        eventType: 'transfer-completed',
+        payload: kafkaEvent,
+        status: OutboxStatus.PENDING,
+      });
 
       return {
         success: true,

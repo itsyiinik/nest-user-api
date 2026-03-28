@@ -1,19 +1,14 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { TransferController } from './transfer.controller';
-import { TransferService } from './transfer.service';
-import { UserModule } from '../user/user.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../user/entities/user.entity';
-
-import { Outbox } from '../outbox/outbox.entity';
-import { KAFKA_SERVICE } from './transfer.tokens';
+import { Outbox } from './outbox.entity';
+import { OutboxWorker } from './outbox.worker';
+import { KAFKA_SERVICE } from '../transfer/transfer.tokens';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Outbox]),
-    UserModule,
+    TypeOrmModule.forFeature([Outbox]),
     ClientsModule.registerAsync([
       {
         name: KAFKA_SERVICE,
@@ -33,8 +28,6 @@ import { KAFKA_SERVICE } from './transfer.tokens';
       },
     ]),
   ],
-  controllers: [TransferController],
-  providers: [TransferService],
-  exports: [TransferService],
+  providers: [OutboxWorker],
 })
-export class TransferModule {}
+export class OutboxModule {}
