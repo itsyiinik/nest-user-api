@@ -10,7 +10,7 @@ export default new DataSource({
   password: process.env.DATABASE_PASS,
   database: process.env.DATABASE_NAME,
 
-  entities: [path.join(__dirname, '../src/**/*.schemas.ts')],
+  entities: [path.join(__dirname, '../apps/user-service/src/**/*.entity.ts')],
   migrations: [path.join(__dirname, './migrations/*.ts')],
 
   synchronize: false,
