@@ -20,14 +20,17 @@ import { S3Service } from './s3.service';
           throw new Error('S3 credentials are not configured');
         }
 
-        // TODO: укажи только accessKeyId, secretAccessKey
+        const endpoint = configService.get<string>('S3_ENDPOINT');
+        const region = configService.get<string>('S3_REGION') ?? 'us-east-1';
+
         return new AWS.S3({
-          endpoint: 'http://127.0.0.1:9000',
-          region: 'ru-central1',
+          endpoint,
+          region,
           credentials: {
-            accessKeyId: accessKeyId,
-            secretAccessKey: secretAccessKey,
+            accessKeyId,
+            secretAccessKey,
           },
+          forcePathStyle: true,
         });
       },
     },

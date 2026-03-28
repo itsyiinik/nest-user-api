@@ -28,7 +28,7 @@ export class BalanceResetService {
     };
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_HOUR)
   async handleScheduledReset() {
     this.logger.log('[CRON] Auto balance reset triggered');
     await this.scheduleBalanceReset();

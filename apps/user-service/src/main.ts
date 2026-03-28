@@ -16,8 +16,11 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('My API')
-    .setDescription('API documentation')
+    .setTitle('User Service API')
+    .setDescription(
+      'REST API for user management, authentication, avatar uploads, and balance transfers. ' +
+        'Real-time notifications are delivered via WebSocket (notification-service on port 3001).',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();
