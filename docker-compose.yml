@@ -13,6 +13,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks: [ app_network ]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio
@@ -26,6 +31,11 @@ services:
       MINIO_ROOT_USER: ${MINIO_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
     networks: [ app_network ]
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:alpine3.16
@@ -39,6 +49,11 @@ services:
     volumes:
       - redis_data:/data
     networks: [ app_network ]
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0
@@ -56,21 +71,24 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-
-      # кворум контроллеров. Один узел — один голос
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
-
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-
       CLUSTER_ID: 'q1Sh-9_ISia_zwGINzRvyQ'
+    healthcheck:
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
 
-  # Открывается по http://localhost:8080/ui/clusters/local/broker
+  # Kafka UI — http://localhost:8080/ui/clusters/local/broker
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
-    depends_on: [ kafka ]
+    depends_on:
+      kafka:
+        condition: service_healthy
     networks: [ app_network ]
     ports: [ "8080:8080" ]
     environment:
@@ -82,14 +100,45 @@ services:
     container_name: mongodb-notifications
     restart: always
     ports:
-      - "27017:27017"
-    # environment:
-    #   MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
-    #   MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+      - "127.0.0.1:27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
     volumes:
       - mongodb_data:/data/db
     networks: [ app_network ]
+    healthcheck:
+      test: [ "CMD", "mongosh", "-u", "${MONGODB_USER}", "-p", "${MONGODB_PASSWORD}", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks: [ app_network ]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3003:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [ app_network ]
+    depends_on:
+      - prometheus
 
 networks:
   app_network: { }
@@ -99,3 +148,4 @@ volumes:
   minio_storage:
   redis_data:
   mongodb_data:
+  grafana_data:
