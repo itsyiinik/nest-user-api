@@ -1,76 +1,220 @@
 # NestJS User Management API
 
-A comprehensive user management system built with NestJS featuring authentication, file uploads, balance transfers, and
-background job processing.
+A full-stack microservices application built with NestJS, featuring JWT authentication, file uploads to S3/MinIO, balance transfers with Kafka events, and real-time WebSocket notifications.
 
-## Features:
+## Architecture
 
-### Authentication & Security.
+```
+┌─────────────────────────────────────────────────────────┐
+│                      Client (HTTP / WS)                 │
+└────────────────┬────────────────────────┬───────────────┘
+                 │ REST                   │ WebSocket
+                 ▼                        ▼
+┌───────────────────────┐   ┌──────────────────────────────┐
+│    user-service        │   │   notification-service        │
+│    (port 3000)         │   │   (port 3001)                 │
+│                        │   │                               │
+│  Auth (JWT)            │   │  WebSocket Gateway            │
+│  User CRUD             │──►│  Kafka Consumer               │
+│  Avatar Upload (S3)    │   │  MongoDB persistence          │
+│  Balance Transfer      │   │                               │
+│  Bull Queue (Redis)    │   └──────────────────────────────┘
+└───────────┬───────────┘
+            │ Kafka event: transfer-completed
+            ▼
+┌─────────────────────────┐
+│  Infrastructure          │
+│  PostgreSQL  │  Redis    │
+│  MinIO/S3    │  Kafka    │
+│  MongoDB                 │
+└─────────────────────────┘
+```
 
-- **JWT-based authentication** with access & refresh tokens
-- **User registration** with email/username validation
-- **Secure password hashing** using bcrypt
-- **Token refresh mechanism** for seamless sessions
+## Tech Stack
 
-### User Management.
+| Layer | Technology |
+|---|---|
+| Framework | NestJS 11 (monorepo) |
+| Language | TypeScript |
+| Primary DB | PostgreSQL + TypeORM (migrations) |
+| Caching | Redis (cache-manager) |
+| Queue | Bull + Redis |
+| File Storage | MinIO / AWS S3 |
+| Messaging | Kafka (KraftMode, no ZooKeeper) |
+| Notifications DB | MongoDB (Mongoose) |
+| Auth | JWT (access + refresh tokens) |
+| Real-time | Socket.IO WebSocket |
+| Docs | Swagger / OpenAPI |
+| Rate Limiting | @nestjs/throttler |
 
-- **CRUD operations** for user profiles
-- **Soft delete functionality** for user accounts
-- **Advanced search** with pagination and filtering
-- **Age-based filtering** with database indexes
+## Quick Start
 
-### Avatar Management.
+### Prerequisites
 
-- **File upload** to MinIO/S3 storage (JPEG/PNG ≤10MB)
-- **Custom validation** for file type and size
-- **Soft delete for avatars** (max 5 active per user)
-- **UUID-based file naming** for security
+- Node.js 20+
+- Yarn
+- Docker & Docker Compose
 
-### Financial Features.
+### 1. Clone and install dependencies
 
-- **Balance system** with decimal precision (2 decimal places)
-- **Secure money transfers** between users
-- **Transaction support** with `typeorm-transactional`
-- **Balance validation** (no negative balances, no self-transfers)
+```bash
+git clone <repo-url>
+cd nest-user-api
+yarn install
+```
 
-### Performance & Scalability.
+### 2. Configure environment
 
-- **Redis caching** for frequently accessed endpoints (30s TTL)
-- **Background job processing** with Bull queues
-- **Database indexing** for optimized queries
-- **Scheduled tasks** for automated operations
+```bash
+cp .env.example .env
+# Edit .env with your values
+```
 
-### Developer Experience.
+### 3. Start infrastructure
 
-- **Complete Swagger/OpenAPI documentation**
-- **Comprehensive logging** throughout all modules
-- **ESLint + Prettier** with Husky pre-commit hooks
-- **Docker-compose** for easy local development
+```bash
+docker-compose up -d
+```
 
-## API Endpoints:
+Wait for all services to be healthy (~15 seconds), then:
 
-### Authentication.
+### 4. Create MinIO bucket
 
-- `POST /auth/register` - Register new user
-- `POST /auth/login` - User login
-- `POST /auth/refresh` - Refresh access token
+Open MinIO Console at **http://localhost:9001**, log in with your `MINIO_USER` / `MINIO_PASSWORD`, and create a bucket named `main` (or whatever you set in `S3_BUCKET_NAME`).
 
-### Profile Management.
+### 5. Run migrations
 
-- `GET /profile/my` - Get current user profile
-- `GET /profile/users` - Get users with pagination
-- `GET /profile/findByLogin` - Search users by login
-- `PATCH /profile/update` - Update user profile
-- `DELETE /profile/delete` - Soft delete user
-- `GET /profile/user/activity` - Get active users with avatars
+```bash
+yarn migration:run
+```
 
-### Avatar Management.
+### 6. Start services
 
-- `POST /avatars/upload` - Upload avatar
-- `DELETE /avatars/delete/:id` - Soft delete avatar
-- `GET /avatars/myAvatars` - Get user's avatars
+```bash
+# Terminal 1 — user-service (REST API)
+yarn start user-service
 
-### Balance Operations.
+# Terminal 2 — notification-service (WebSocket + Kafka)
+yarn start notification-service
+```
 
-- `POST /transfer/send` - Transfer balance to another user
-- `POST /balance-reset` - Reset all user balances (manual trigger)
+## API Reference
+
+Interactive docs available at **http://localhost:3000/docs** (Swagger UI).
+
+### Authentication
+
+> Auth endpoints are rate-limited to **5 requests per minute** per IP.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/auth/register` | Register a new user |
+| POST | `/auth/login` | Login and receive tokens |
+| POST | `/auth/refresh` | Refresh access token |
+
+### Profile Management
+
+> All endpoints below require `Authorization: Bearer <access_token>`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/profile/my` | Get your profile |
+| GET | `/profile/users` | Paginated user list (`?page=1&limit=10`) |
+| GET | `/profile/findByLogin` | Search users by login (`?search=alice`) |
+| PATCH | `/profile/update` | Update your profile |
+| DELETE | `/profile/delete` | Soft-delete your account |
+| GET | `/profile/user/activity` | Active users with 3+ avatars (`?minAge=18&maxAge=40`) |
+
+### Avatar Management
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/avatars/upload` | Upload avatar (JPEG/PNG, max 10MB, max 5 per user) |
+| DELETE | `/avatars/delete/:id` | Soft-delete an avatar |
+| GET | `/avatars/myAvatars` | List your active avatars |
+
+### Balance & Transfers
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/transfer/send` | Transfer funds to another user |
+| POST | `/balance-reset` | Manually trigger balance reset |
+
+### WebSocket Notifications
+
+Connect to `ws://localhost:3001?token=<access_token>`.
+
+The server emits a `notification` event whenever you receive a transfer:
+
+```json
+{
+  "message": "You received: 100 from alice",
+  "data": {
+    "fromUserId": "...",
+    "fromUserLogin": "alice",
+    "amount": 100,
+    "transactionId": "txn_...",
+    "timestamp": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+## Running Tests
+
+```bash
+# Unit tests
+yarn test
+
+# Unit tests with coverage
+yarn test:cov
+
+# E2E tests (requires running infrastructure)
+yarn test:e2e
+```
+
+## Docker Build
+
+```bash
+# Build user-service
+docker build -f Dockerfile.user-service -t nest-user-service .
+
+# Build notification-service
+docker build -f Dockerfile.notification-service -t nest-notification-service .
+```
+
+## Database Migrations
+
+```bash
+yarn migration:run      # Apply all pending migrations
+yarn migration:revert   # Revert the last migration
+yarn migration:generate # Generate a new migration from entity changes
+```
+
+## Project Structure
+
+```
+nest-user-api/
+├── apps/
+│   ├── user-service/          # REST API (port 3000)
+│   │   └── src/
+│   │       ├── auth/          # JWT auth (register, login, refresh)
+│   │       ├── user/          # User CRUD, repository, caching
+│   │       ├── avatar/        # File upload, S3 integration
+│   │       ├── transfer/      # Balance transfers + Kafka producer
+│   │       ├── balance-reset/ # Scheduled balance reset (Bull)
+│   │       └── providers/s3/  # AWS S3 client adapter
+│   └── notification-service/  # WebSocket + Kafka (port 3001)
+│       └── src/notification/
+│           ├── schemas/       # MongoDB notification schema
+│           ├── guards/        # WS JWT auth guard
+│           └── dto/           # Validation DTOs
+├── libs/common/               # Shared: JwtPayload, CurrentUser decorator
+├── db/
+│   ├── data-source.ts         # TypeORM CLI config
+│   └── migrations/            # Database migrations
+├── test/                      # E2E tests
+├── docker-compose.yml         # Full local infrastructure
+├── Dockerfile.user-service
+├── Dockerfile.notification-service
+└── .env.example               # Environment variables template
+```
